@@ -99,10 +99,10 @@ const Graph: React.FC<Props> = ({ funcStr, funcLatex, a, b, iterations, method }
   }, [funcStr, a, b, iterations]);
 
   const methodColors: Record<string, string> = {
-    trapezoidal: '#ef4444',
+    trapezoidal: '#3b82f6',
     boole: '#f59e0b',
     simpson: '#8b5cf6',
-    simpson13: '#ec4899',
+    simpson13: '#06b6d4',
     simpsonAbierto: '#10b981',
   };
 
@@ -134,30 +134,48 @@ const Graph: React.FC<Props> = ({ funcStr, funcLatex, a, b, iterations, method }
       </div>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <defs>
+            <linearGradient id={`gradient-${method}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={primaryColor} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={primaryColor} stopOpacity={0.05} />
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
           <XAxis
             dataKey="x"
             type="number"
             domain={['dataMin', 'dataMax']}
-            tick={{ fontSize: 12, fill: '#6b7280' }}
-            label={{ value: 'x', position: 'insideBottom', offset: -10, style: { fill: '#374151' } }}
+            tick={{ fontSize: 12, fill: '#94a3b8' }}
+            stroke="rgba(148, 163, 184, 0.3)"
+            label={{ value: 'x', position: 'insideBottom', offset: -10, style: { fill: '#cbd5e1', fontWeight: 600 } }}
             allowDataOverflow={false}
           />
           <YAxis
             type="number"
             domain={yDomain}
-            tick={{ fontSize: 12, fill: '#6b7280' }}
-            label={{ value: 'f(x)', angle: -90, position: 'insideLeft', style: { fill: '#374151' } }}
+            tick={{ fontSize: 12, fill: '#94a3b8' }}
+            stroke="rgba(148, 163, 184, 0.3)"
+            label={{ value: 'f(x)', angle: -90, position: 'insideLeft', style: { fill: '#cbd5e1', fontWeight: 600 } }}
             allowDataOverflow={false}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#ffffff',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(148, 163, 184, 0.2)',
+              borderRadius: '12px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              padding: '12px 16px',
             }}
-            labelStyle={{ color: '#374151', fontWeight: 600 }}
+            labelStyle={{ color: '#e2e8f0', fontWeight: 700, marginBottom: '8px' }}
+            itemStyle={{ color: '#cbd5e1', padding: '4px 0' }}
             formatter={(value: any) => {
               if (typeof value === 'number' && isFinite(value)) {
                 return [value.toFixed(6), ''];
@@ -166,29 +184,29 @@ const Graph: React.FC<Props> = ({ funcStr, funcLatex, a, b, iterations, method }
             }}
           />
           <Legend
-            wrapperStyle={{ paddingTop: '20px' }}
+            wrapperStyle={{ paddingTop: '24px' }}
             iconType="line"
+            formatter={(value) => <span style={{ color: '#cbd5e1', fontWeight: 600 }}>{value}</span>}
           />
           {/* Eje Y (línea vertical en x=0) - solo si 0 está en el rango */}
           {a <= 0 && b >= 0 && (
-            <ReferenceLine x={0} stroke="#374151" strokeWidth={2} />
+            <ReferenceLine x={0} stroke="rgba(203, 213, 225, 0.3)" strokeWidth={1.5} />
           )}
           {/* Eje X (línea horizontal en y=0) - siempre visible */}
-          <ReferenceLine y={0} stroke="#374151" strokeWidth={2} />
+          <ReferenceLine y={0} stroke="rgba(203, 213, 225, 0.3)" strokeWidth={1.5} />
           
-          {/* Area under curve with vivid color */}
+          {/* Area under curve with gradient */}
           <Area
             type="monotone"
             dataKey="fx"
-            fill={primaryColor}
-            fillOpacity={0.15}
+            fill={`url(#gradient-${method})`}
             stroke="none"
             name="Área"
             isAnimationActive={true}
-            animationDuration={800}
+            animationDuration={1000}
           />
           
-          {/* Function curve */}
+          {/* Function curve with glow */}
           <Line
             type="monotone"
             dataKey="fx"
@@ -197,7 +215,8 @@ const Graph: React.FC<Props> = ({ funcStr, funcLatex, a, b, iterations, method }
             dot={false}
             name="f(x)"
             isAnimationActive={true}
-            animationDuration={800}
+            animationDuration={1000}
+            filter="url(#glow)"
           />
           
           {/* Approximation line - only render when we have calculated points */}
@@ -205,13 +224,14 @@ const Graph: React.FC<Props> = ({ funcStr, funcLatex, a, b, iterations, method }
             <Line
               type="linear"
               dataKey="approx"
-              stroke="#dc2626"
-              strokeWidth={2.5}
-              dot={{ fill: '#dc2626', r: 5, strokeWidth: 0 }}
+              stroke="#ec4899"
+              strokeWidth={3}
+              dot={{ fill: '#ec4899', r: 6, strokeWidth: 2, stroke: '#1e293b' }}
               name="Aproximación"
               isAnimationActive={true}
-              animationDuration={1000}
+              animationDuration={1200}
               connectNulls={false}
+              filter="url(#glow)"
             />
           )}
         </ComposedChart>

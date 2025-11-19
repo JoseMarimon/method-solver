@@ -164,7 +164,7 @@ export default class MenuBuilder {
   buildDefaultTemplate() {
     const templateDefault = [
       {
-        label: '&VietMath',
+        label: '&method-solver',
         submenu: [
           {
             label: '&Cerrar',
