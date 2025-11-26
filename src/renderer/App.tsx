@@ -9,6 +9,7 @@ import { calculateBoole, BooleOutput } from '../main/server/Boole';
 import { calculateSimpson, SimpsonOutput } from '../main/server/Simpson';
 import { calculateSimpson13, Simpson13Output } from '../main/server/Simpson13';
 import { calculateSimpsonAbierto, SimpsonAbiertoOutput } from '../main/server/SimpsonAbierto';
+import { evaluateExpression, preprocessExpression } from '../main/server/mathEvaluator';
 
 // Interfaz genérica para una iteración, ya que todas son iguales
 interface Iteration {
@@ -61,27 +62,72 @@ function Calculator() {
   const graphRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
 
+  // Limpiar resultados cuando cambien los parámetros
+  useEffect(() => {
+    setResult(null);
+    setIterations([]);
+    setError(null);
+  }, [funcStr, a, b, n, method]);
+
+  const parseValue = (value: string): number => {
+    if (!value) return NaN;
+    
+    let processedValue = value.trim().toLowerCase();
+    
+    // Replace 'pi' with Math.PI value
+    processedValue = processedValue.replace(/\bpi\b/g, 'Math.PI');
+    processedValue = processedValue.replace(/\be\b/g, 'Math.E');
+    
+    // Add Math. prefix to mathematical functions
+    const mathFunctions = ['sqrt', 'cbrt', 'abs', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 
+                          'sinh', 'cosh', 'tanh', 'exp', 'log', 'log10', 'pow', 'ceil', 'floor', 'round'];
+    
+    mathFunctions.forEach(func => {
+      const regex = new RegExp(`(?<!Math\\.)\\b${func}\\b`, 'g');
+      processedValue = processedValue.replace(regex, `Math.${func}`);
+    });
+    
+    // Handle log as log10
+    processedValue = processedValue.replace(/\bMath\.log\b(?!\d)/g, 'Math.log10');
+    
+    // Evaluate expressions like '2*pi', 'pi/2', 'sqrt(3)', etc.
+    try {
+      // Allow numbers, operators, parentheses, dots, letters (for Math functions), and whitespace
+      if (/[^0-9+\-*/().a-zA-Z\s]/g.test(processedValue)) {
+        return NaN;
+      }
+      // Additional security: ensure it only contains Math. prefixed functions
+      if (!/^[\d+\-*/().\s]*$/.test(processedValue) && !/Math\./i.test(processedValue)) {
+        return NaN;
+      }
+      // Use Function constructor to safely evaluate mathematical expressions
+      return Function(`'use strict'; return (${processedValue})`)();
+    } catch {
+      return NaN;
+    }
+  };
+
   const handleCalculate = () => {
     setResult(null);
     setIterations([]);
     setError(null);
 
-    const numA = parseFloat(a);
-    const numB = parseFloat(b);
-    const numN = parseInt(n, 10);
-
-    if (isNaN(numA) || isNaN(numB) || isNaN(numN)) {
-      setError('Por favor, introduce valores numéricos válidos para a, b y n.');
-      return;
-    }
-
     try {
+      const numN = parseInt(n, 10);
+      const numA = parseValue(a);
+      const numB = parseValue(b);
+
+
+      if (isNaN(numN) || isNaN(numA) || isNaN(numB)) {
+        setError('Por favor, introduce un valor numérico válido para n.');
+        return;
+      }
       let output: TrapezoidalOutput | BooleOutput | SimpsonOutput | Simpson13Output | SimpsonAbiertoOutput;
 
       const input = {
         funcStr,
-        a: numA,
-        b: numB,
+        a: numA,  // Enviar como string
+        b: numB,  // Enviar como string
         n: numN,
       };
 
@@ -120,8 +166,27 @@ function Calculator() {
     }
   };
 
-  const parsedA = parseFloat(a);
-  const parsedB = parseFloat(b);
+  // Evaluar a y b como expresiones matemáticas
+  const getNumericValue = (expr: string): number => {
+    try {
+      // Intentar convertir directamente a número
+      const num = parseFloat(expr);
+      if (!isNaN(num)) return num;
+      
+      // Si no es un número, evaluar como expresión
+      const processed = preprocessExpression(expr);
+      console.log(`[App] Evaluando límite: "${expr}" -> procesado: "${processed}"`);
+      const result = evaluateExpression(processed, 0);
+      console.log(`[App] Resultado: ${result}`);
+      return result;
+    } catch (e) {
+      console.error('[App] Error al evaluar:', e);
+      return NaN;
+    }
+  };
+
+  const parsedA = getNumericValue(a);
+  const parsedB = getNumericValue(b);
 
   return (
     <div className="app-layout">
@@ -177,11 +242,21 @@ function Calculator() {
           <div className='control-inline'>
             <label>
               Límite inferior (a)
-              <input type="number" value={a} onChange={(e) => setA(e.target.value)} />
+              <input 
+                type="text" 
+                placeholder="Ej: 0, pi, sqrt(2)" 
+                value={a} 
+                onChange={(e) => setA(e.target.value)} 
+              />
             </label>
             <label>
               Límite superior (b)
-              <input type="number" value={b} onChange={(e) => setB(e.target.value)} />
+              <input 
+                type="text" 
+                placeholder="Ej: 1, 2*pi, e" 
+                value={b} 
+                onChange={(e) => setB(e.target.value)} 
+              />
             </label>
           </div>
 
@@ -202,7 +277,7 @@ function Calculator() {
           {result !== null && (
             <div className='result'>
               <div className="result-label">Resultado de la Integral:</div>
-              <div className="result-value">{result.toFixed(8)}</div>
+              <div className="result-value">{result.toFixed(10)}</div>
             </div>
           )}
           
@@ -237,8 +312,8 @@ function Calculator() {
                     {iterations.map((iter, index) => (
                       <tr key={index}>
                         <td>{index}</td>
-                        <td>{iter.x.toFixed(6)}</td>
-                        <td>{iter.y.toFixed(6)}</td>
+                        <td>{iter.x.toFixed(10)}</td>
+                        <td>{iter.y.toFixed(10)}</td>
                       </tr>
                     ))}
                   </tbody>

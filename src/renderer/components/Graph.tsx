@@ -219,19 +219,18 @@ const Graph: React.FC<Props> = ({ funcStr, funcLatex, a, b, iterations, method }
             filter="url(#glow)"
           />
           
-          {/* Approximation line - only render when we have calculated points */}
+          {/* Approximation points - only render when we have calculated points */}
           {iterations.length > 0 && (
             <Line
               type="linear"
               dataKey="approx"
-              stroke="#ec4899"
-              strokeWidth={3}
+              stroke="none"
+              strokeWidth={0}
               dot={{ fill: '#ec4899', r: 6, strokeWidth: 2, stroke: '#1e293b' }}
-              name="Aproximación"
+              name="Puntos de Aproximación"
               isAnimationActive={true}
               animationDuration={1200}
               connectNulls={false}
-              filter="url(#glow)"
             />
           )}
         </ComposedChart>
